@@ -1,0 +1,35 @@
+name: skewr_cli CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'skewr_cli/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'skewr_cli/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skewr_cli
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Analyze
+        run: dart analyze
+
+      - name: Format
+        run: dart format --set-exit-if-changed .
+
+      - name: Test
+        run: dart test
