@@ -18,10 +18,10 @@ Dependency direction: `skewr_cli / skewr_app → chat_adapter → chat_core` (un
 ## Tech Choices
 - **LLM API**: Portkey API (OpenAI-compatible format)
 - **State Management**: BLoC (package:bloc)
-- **Configuration**: `local.properties` (repo root, gitignored) + CLI argument overrides
+- **Configuration**: `local.properties` (repo root, gitignored) + CLI argument overrides + env vars
 
 ## Package Conventions
-- Dart SDK: `^3.0.0`
+- Dart SDK: `^3.8.0`
 - Lints: `package:lints/recommended.yaml` + `prefer_single_quotes: true`
 - Version: starts at `0.0.1`
 - No unnecessary comments or blank lines
