@@ -13,7 +13,10 @@ class PortkeyClient {
   final http.Client _httpClient;
 
   Future<Message> sendMessage(List<Message> messages) async {
-    final url = Uri.parse('${config.baseUrl}/chat/completions');
+    final baseUrl = config.baseUrl.endsWith('/')
+        ? config.baseUrl.substring(0, config.baseUrl.length - 1)
+        : config.baseUrl;
+    final url = Uri.parse('$baseUrl/chat/completions');
     final body = jsonEncode({
       'model': config.model,
       'messages': messages.map((m) => m.toJson()).toList(),
