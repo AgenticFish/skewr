@@ -36,11 +36,16 @@ class PortkeyClient {
   }
 
   Future<Message> sendMessage(List<Message> messages) async {
-    final response = await _httpClient.post(
-      _url,
-      headers: _headers,
-      body: _buildBody(messages),
-    );
+    final http.Response response;
+    try {
+      response = await _httpClient.post(
+        _url,
+        headers: _headers,
+        body: _buildBody(messages),
+      );
+    } on Exception catch (e) {
+      throw PortkeyApiException(statusCode: 0, message: e.toString());
+    }
 
     if (response.statusCode != 200) {
       throw PortkeyApiException(
@@ -49,10 +54,25 @@ class PortkeyClient {
       );
     }
 
-    final json = jsonDecode(response.body) as Map<String, dynamic>;
-    final choices = json['choices'] as List<dynamic>;
-    final messageJson = choices[0]['message'] as Map<String, dynamic>;
-    return Message.fromJson(messageJson);
+    try {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final choices = json['choices'] as List<dynamic>;
+      if (choices.isEmpty) {
+        throw PortkeyApiException(
+          statusCode: response.statusCode,
+          message: 'Response contains no choices',
+        );
+      }
+      final messageJson = choices[0]['message'] as Map<String, dynamic>;
+      return Message.fromJson(messageJson);
+    } on PortkeyApiException {
+      rethrow;
+    } on Exception catch (e) {
+      throw PortkeyApiException(
+        statusCode: response.statusCode,
+        message: 'Failed to parse response: $e',
+      );
+    }
   }
 
   Stream<ChatEvent> sendMessageStream(List<Message> messages) async* {
@@ -69,7 +89,12 @@ class PortkeyClient {
     }
 
     if (response.statusCode != 200) {
-      final body = await response.stream.bytesToString();
+      String body;
+      try {
+        body = await response.stream.bytesToString();
+      } on Exception {
+        body = 'Failed to read error response body';
+      }
       yield ChatError(
         PortkeyApiException(
           statusCode: response.statusCode,
@@ -81,10 +106,14 @@ class PortkeyClient {
 
     final toolCallBuilders = <int, _ToolCallBuilder>{};
 
-    await for (final data in _sseDataLines(response)) {
-      if (data == '[DONE]') break;
-      final event = _parseSseData(data, toolCallBuilders);
-      if (event != null) yield event;
+    try {
+      await for (final data in _sseDataLines(response)) {
+        if (data == '[DONE]') break;
+        final event = _parseSseData(data, toolCallBuilders);
+        if (event != null) yield event;
+      }
+    } on Exception catch (e) {
+      yield ChatError(e.toString());
     }
 
     // Emit completed tool calls before Done

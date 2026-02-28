@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:chat_core/chat_core.dart';
@@ -112,6 +113,78 @@ void main() {
       client.close();
     });
 
+    test('sendMessage throws on network error', () async {
+      final mockClient = MockClient((request) async {
+        throw Exception('Connection refused');
+      });
+
+      final client = PortkeyClient(config: _config, httpClient: mockClient);
+
+      expect(
+        () => client.sendMessage([Message.user('Hello')]),
+        throwsA(
+          isA<PortkeyApiException>()
+              .having((e) => e.statusCode, 'statusCode', 0)
+              .having(
+                (e) => e.message,
+                'message',
+                contains('Connection refused'),
+              ),
+        ),
+      );
+
+      client.close();
+    });
+
+    test('sendMessage throws on invalid JSON response', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('<html>Error</html>', 200);
+      });
+
+      final client = PortkeyClient(config: _config, httpClient: mockClient);
+
+      expect(
+        () => client.sendMessage([Message.user('Hello')]),
+        throwsA(
+          isA<PortkeyApiException>().having(
+            (e) => e.message,
+            'message',
+            contains('Failed to parse response'),
+          ),
+        ),
+      );
+
+      client.close();
+    });
+
+    test('sendMessage throws on empty choices', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 'chatcmpl-789',
+            'object': 'chat.completion',
+            'choices': [],
+          }),
+          200,
+        );
+      });
+
+      final client = PortkeyClient(config: _config, httpClient: mockClient);
+
+      expect(
+        () => client.sendMessage([Message.user('Hello')]),
+        throwsA(
+          isA<PortkeyApiException>().having(
+            (e) => e.message,
+            'message',
+            contains('no choices'),
+          ),
+        ),
+      );
+
+      client.close();
+    });
+
     test('sendMessage throws PortkeyApiException on non-200', () async {
       final mockClient = MockClient((request) async {
         return http.Response('{"error": "Unauthorized"}', 401);
@@ -193,6 +266,41 @@ void main() {
       expect(events, hasLength(1));
       expect(events[0], isA<ChatError>());
       expect((events[0] as ChatError).message, contains('400'));
+
+      client.close();
+    });
+
+    test('emits ChatError on mid-stream disconnect', () async {
+      final mockClient = MockClient.streaming((request, _) async {
+        final controller = StreamController<List<int>>();
+        controller.add(
+          utf8.encode(
+            _sseChunk({
+              'choices': [
+                {
+                  'delta': {'content': 'Hello'},
+                  'finish_reason': null,
+                },
+              ],
+            }),
+          ),
+        );
+        controller.addError(Exception('Connection reset'));
+        controller.close();
+        return http.StreamedResponse(controller.stream, 200);
+      });
+
+      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final events = await client.sendMessageStream([
+        Message.user('Hi'),
+      ]).toList();
+
+      expect(events.whereType<TextDelta>(), isNotEmpty);
+      expect(
+        events.whereType<ChatError>().first.message,
+        contains('Connection reset'),
+      );
+      expect(events.last, isA<Done>());
 
       client.close();
     });
