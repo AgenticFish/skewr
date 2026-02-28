@@ -56,6 +56,20 @@ void main() {
         expect(response.content, isNotNull);
         expect(response.content!.toLowerCase(), contains('hello'));
       });
+
+      test('sendMessageStream returns text deltas', () async {
+        final events = await client.sendMessageStream([
+          Message.user('Say "hello" and nothing else.'),
+        ]).toList();
+
+        final textDeltas = events.whereType<TextDelta>().toList();
+        final fullText = textDeltas.map((e) => e.text).join();
+        print('Streamed: $fullText');
+
+        expect(textDeltas, isNotEmpty);
+        expect(fullText.toLowerCase(), contains('hello'));
+        expect(events.last, isA<Done>());
+      });
     },
   );
 }

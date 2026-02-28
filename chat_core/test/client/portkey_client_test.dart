@@ -5,6 +5,13 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
+String _sseChunk(Map<String, dynamic> json) => 'data: ${jsonEncode(json)}\n\n';
+const _sseDone = 'data: [DONE]\n\n';
+
+http.StreamedResponse _streamedResponse(String body, {int statusCode = 200}) {
+  return http.StreamedResponse(Stream.value(utf8.encode(body)), statusCode);
+}
+
 const _config = ChatConfig(
   apiKey: 'test-api-key',
   model: '@openai/gpt-4o',
@@ -120,6 +127,148 @@ void main() {
               .having((e) => e.message, 'message', contains('Unauthorized')),
         ),
       );
+
+      client.close();
+    });
+  });
+
+  group('PortkeyClient.sendMessageStream', () {
+    test('streams text deltas and done', () async {
+      final sseBody =
+          _sseChunk({
+            'choices': [
+              {
+                'delta': {'content': 'Hello'},
+                'finish_reason': null,
+              },
+            ],
+          }) +
+          _sseChunk({
+            'choices': [
+              {
+                'delta': {'content': ' world'},
+                'finish_reason': null,
+              },
+            ],
+          }) +
+          _sseChunk({
+            'choices': [
+              {'delta': {}, 'finish_reason': 'stop'},
+            ],
+          }) +
+          _sseDone;
+
+      final mockClient = MockClient.streaming((request, _) async {
+        final body =
+            jsonDecode((request as http.Request).body) as Map<String, dynamic>;
+        expect(body['stream'], true);
+        return _streamedResponse(sseBody);
+      });
+
+      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final events = await client.sendMessageStream([
+        Message.user('Hi'),
+      ]).toList();
+
+      expect(events, hasLength(3));
+      expect(events[0], isA<TextDelta>());
+      expect((events[0] as TextDelta).text, 'Hello');
+      expect(events[1], isA<TextDelta>());
+      expect((events[1] as TextDelta).text, ' world');
+      expect(events[2], isA<Done>());
+
+      client.close();
+    });
+
+    test('streams error on non-200', () async {
+      final mockClient = MockClient.streaming((request, _) async {
+        return _streamedResponse('{"error": "Bad Request"}', statusCode: 400);
+      });
+
+      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final events = await client.sendMessageStream([
+        Message.user('Hi'),
+      ]).toList();
+
+      expect(events, hasLength(1));
+      expect(events[0], isA<ChatError>());
+      expect((events[0] as ChatError).message, contains('400'));
+
+      client.close();
+    });
+
+    test('accumulates tool calls and emits on done', () async {
+      final sseBody =
+          _sseChunk({
+            'choices': [
+              {
+                'delta': {
+                  'tool_calls': [
+                    {
+                      'index': 0,
+                      'id': 'call_1',
+                      'type': 'function',
+                      'function': {'name': 'create_file', 'arguments': ''},
+                    },
+                  ],
+                },
+                'finish_reason': null,
+              },
+            ],
+          }) +
+          _sseChunk({
+            'choices': [
+              {
+                'delta': {
+                  'tool_calls': [
+                    {
+                      'index': 0,
+                      'function': {'arguments': '{"path":'},
+                    },
+                  ],
+                },
+                'finish_reason': null,
+              },
+            ],
+          }) +
+          _sseChunk({
+            'choices': [
+              {
+                'delta': {
+                  'tool_calls': [
+                    {
+                      'index': 0,
+                      'function': {'arguments': ' "a.txt"}'},
+                    },
+                  ],
+                },
+                'finish_reason': null,
+              },
+            ],
+          }) +
+          _sseChunk({
+            'choices': [
+              {'delta': {}, 'finish_reason': 'tool_calls'},
+            ],
+          }) +
+          _sseDone;
+
+      final mockClient = MockClient.streaming((request, _) async {
+        return _streamedResponse(sseBody);
+      });
+
+      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final events = await client.sendMessageStream([
+        Message.user('Make a file'),
+      ]).toList();
+
+      expect(events, hasLength(2));
+      expect(events[0], isA<ToolCallRequest>());
+      final toolCall = (events[0] as ToolCallRequest).toolCall;
+      expect(toolCall.id, 'call_1');
+      expect(toolCall.function.name, 'create_file');
+      expect(toolCall.function.arguments, '{"path": "a.txt"}');
+      expect(events[1], isA<Done>());
 
       client.close();
     });
