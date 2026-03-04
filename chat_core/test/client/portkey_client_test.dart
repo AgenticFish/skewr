@@ -6,19 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
-String _sseChunk(Map<String, dynamic> json) => 'data: ${jsonEncode(json)}\n\n';
-const _sseDone = 'data: [DONE]\n\n';
-
-http.StreamedResponse _streamedResponse(String body, {int statusCode = 200}) {
-  return http.StreamedResponse(Stream.value(utf8.encode(body)), statusCode);
-}
-
-const _config = ChatConfig(
-  apiKey: 'test-api-key',
-  model: '@openai/gpt-4o',
-  baseUrl: 'https://api.portkey.ai/v1',
-  maxTokens: 512,
-);
+import '../helpers/sse_helpers.dart';
+import '../helpers/test_config.dart';
 
 void main() {
   group('PortkeyClient', () {
@@ -61,7 +50,7 @@ void main() {
         );
       });
 
-      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final client = PortkeyClient(config: testConfig, httpClient: mockClient);
       final response = await client.sendMessage([Message.user('Hello')]);
 
       expect(response.role, Role.assistant);
@@ -100,7 +89,7 @@ void main() {
         );
       });
 
-      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final client = PortkeyClient(config: testConfig, httpClient: mockClient);
       final response = await client.sendMessage([
         Message.user('Create a file'),
       ]);
@@ -118,7 +107,7 @@ void main() {
         throw Exception('Connection refused');
       });
 
-      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final client = PortkeyClient(config: testConfig, httpClient: mockClient);
 
       expect(
         () => client.sendMessage([Message.user('Hello')]),
@@ -141,7 +130,7 @@ void main() {
         return http.Response('<html>Error</html>', 200);
       });
 
-      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final client = PortkeyClient(config: testConfig, httpClient: mockClient);
 
       expect(
         () => client.sendMessage([Message.user('Hello')]),
@@ -169,7 +158,7 @@ void main() {
         );
       });
 
-      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final client = PortkeyClient(config: testConfig, httpClient: mockClient);
 
       expect(
         () => client.sendMessage([Message.user('Hello')]),
@@ -190,7 +179,7 @@ void main() {
         return http.Response('{"error": "Unauthorized"}', 401);
       });
 
-      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final client = PortkeyClient(config: testConfig, httpClient: mockClient);
 
       expect(
         () => client.sendMessage([Message.user('Hello')]),
@@ -208,7 +197,7 @@ void main() {
   group('PortkeyClient.sendMessageStream', () {
     test('streams text deltas and done', () async {
       final sseBody =
-          _sseChunk({
+          sseChunk({
             'choices': [
               {
                 'delta': {'content': 'Hello'},
@@ -216,7 +205,7 @@ void main() {
               },
             ],
           }) +
-          _sseChunk({
+          sseChunk({
             'choices': [
               {
                 'delta': {'content': ' world'},
@@ -224,21 +213,21 @@ void main() {
               },
             ],
           }) +
-          _sseChunk({
+          sseChunk({
             'choices': [
               {'delta': {}, 'finish_reason': 'stop'},
             ],
           }) +
-          _sseDone;
+          sseDone;
 
       final mockClient = MockClient.streaming((request, _) async {
         final body =
             jsonDecode((request as http.Request).body) as Map<String, dynamic>;
         expect(body['stream'], true);
-        return _streamedResponse(sseBody);
+        return http.StreamedResponse(Stream.value(utf8.encode(sseBody)), 200);
       });
 
-      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final client = PortkeyClient(config: testConfig, httpClient: mockClient);
       final events = await client.sendMessageStream([
         Message.user('Hi'),
       ]).toList();
@@ -254,11 +243,12 @@ void main() {
     });
 
     test('streams error on non-200', () async {
-      final mockClient = MockClient.streaming((request, _) async {
-        return _streamedResponse('{"error": "Bad Request"}', statusCode: 400);
-      });
+      final mockClient = mockStreamingClient(
+        '{"error": "Bad Request"}',
+        statusCode: 400,
+      );
 
-      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final client = PortkeyClient(config: testConfig, httpClient: mockClient);
       final events = await client.sendMessageStream([
         Message.user('Hi'),
       ]).toList();
@@ -275,7 +265,7 @@ void main() {
         final controller = StreamController<List<int>>();
         controller.add(
           utf8.encode(
-            _sseChunk({
+            sseChunk({
               'choices': [
                 {
                   'delta': {'content': 'Hello'},
@@ -290,7 +280,7 @@ void main() {
         return http.StreamedResponse(controller.stream, 200);
       });
 
-      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final client = PortkeyClient(config: testConfig, httpClient: mockClient);
       final events = await client.sendMessageStream([
         Message.user('Hi'),
       ]).toList();
@@ -307,7 +297,7 @@ void main() {
 
     test('accumulates tool calls and emits on done', () async {
       final sseBody =
-          _sseChunk({
+          sseChunk({
             'choices': [
               {
                 'delta': {
@@ -324,7 +314,7 @@ void main() {
               },
             ],
           }) +
-          _sseChunk({
+          sseChunk({
             'choices': [
               {
                 'delta': {
@@ -339,7 +329,7 @@ void main() {
               },
             ],
           }) +
-          _sseChunk({
+          sseChunk({
             'choices': [
               {
                 'delta': {
@@ -354,18 +344,16 @@ void main() {
               },
             ],
           }) +
-          _sseChunk({
+          sseChunk({
             'choices': [
               {'delta': {}, 'finish_reason': 'tool_calls'},
             ],
           }) +
-          _sseDone;
+          sseDone;
 
-      final mockClient = MockClient.streaming((request, _) async {
-        return _streamedResponse(sseBody);
-      });
+      final mockClient = mockStreamingClient(sseBody);
 
-      final client = PortkeyClient(config: _config, httpClient: mockClient);
+      final client = PortkeyClient(config: testConfig, httpClient: mockClient);
       final events = await client.sendMessageStream([
         Message.user('Make a file'),
       ]).toList();
