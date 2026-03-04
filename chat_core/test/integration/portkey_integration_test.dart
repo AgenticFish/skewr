@@ -72,4 +72,34 @@ void main() {
       });
     },
   );
+
+  group(
+    'ChatService integration',
+    skip: config == null ? 'no local.properties' : null,
+    () {
+      late ChatService service;
+
+      setUp(() {
+        service = PortkeyChatService(PortkeyClient(config: config!));
+      });
+
+      tearDown(() {
+        service.close();
+      });
+
+      test('chat() returns streaming events', () async {
+        final events = await service.chat([
+          Message.user('Say "hello" and nothing else.'),
+        ]).toList();
+
+        final textDeltas = events.whereType<TextDelta>().toList();
+        final fullText = textDeltas.map((e) => e.text).join();
+        print('ChatService: $fullText');
+
+        expect(textDeltas, isNotEmpty);
+        expect(fullText.toLowerCase(), contains('hello'));
+        expect(events.last, isA<Done>());
+      });
+    },
+  );
 }
