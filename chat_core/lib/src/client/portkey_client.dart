@@ -18,7 +18,7 @@ class PortkeyClient {
     final baseUrl = config.baseUrl.endsWith('/')
         ? config.baseUrl.substring(0, config.baseUrl.length - 1)
         : config.baseUrl;
-    return Uri.parse('$baseUrl/chat/completions');
+    return Uri.parse('$baseUrl/v1/chat/completions');
   }
 
   Map<String, String> get _headers => {

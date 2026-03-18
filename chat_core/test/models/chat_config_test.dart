@@ -11,7 +11,7 @@ void main() {
 
     test('default values', () {
       const config = ChatConfig(apiKey: 'pk-xxx', model: '@openai/gpt-4o');
-      expect(config.baseUrl, 'https://api.portkey.ai/v1');
+      expect(config.baseUrl, 'https://api.portkey.ai');
       expect(config.maxTokens, 1024);
     });
 
