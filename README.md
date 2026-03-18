@@ -33,7 +33,7 @@ portkey-model=@provider-slug/model-name
 Optional:
 
 ```properties
-portkey-base-url=https://api.portkey.ai/v1
+portkey-base-url=https://api.portkey.ai
 portkey-max-tokens=1024
 ```
 

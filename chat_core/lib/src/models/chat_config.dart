@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-const _defaultBaseUrl = 'https://api.portkey.ai/v1';
+const _defaultBaseUrl = 'https://api.portkey.ai';
 const _defaultMaxTokens = 1024;
 
 class ChatConfig extends Equatable {
