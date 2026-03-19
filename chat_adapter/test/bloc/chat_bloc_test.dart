@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:chat_adapter/chat_adapter.dart';
 import 'package:chat_core/chat_core.dart';
@@ -76,6 +78,47 @@ void main() {
         ChatState(
           messages: [Message.user('Hi')],
           error: 'Something went wrong',
+        ),
+      ],
+    );
+
+    blocTest<ChatBloc, ChatState>(
+      'stops generation and keeps partial response',
+      build: () {
+        final controller = StreamController<ChatEvent>();
+        when(
+          () => mockService.chat(any()),
+        ).thenAnswer((_) => controller.stream);
+        // Emit some deltas then don't close (simulates ongoing stream)
+        Future.microtask(() {
+          controller.add(const TextDelta('Hello'));
+          controller.add(const TextDelta(' wor'));
+        });
+        return ChatBloc(mockService);
+      },
+      act: (bloc) async {
+        bloc.add(const SendMessageRequested('Hi'));
+        // Wait for deltas to be processed
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        bloc.add(const StopGenerationRequested());
+      },
+      expect: () => [
+        ChatState(messages: [Message.user('Hi')], isGenerating: true),
+        ChatState(
+          messages: [Message.user('Hi')],
+          isGenerating: true,
+          currentResponse: 'Hello',
+        ),
+        ChatState(
+          messages: [Message.user('Hi')],
+          isGenerating: true,
+          currentResponse: 'Hello wor',
+        ),
+        ChatState(
+          messages: [
+            Message.user('Hi'),
+            Message.assistant(content: 'Hello wor'),
+          ],
         ),
       ],
     );

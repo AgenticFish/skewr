@@ -32,6 +32,12 @@ class ChatRepl {
 
   StreamSubscription<ProcessSignal> _listenSigint() {
     return ProcessSignal.sigint.watch().listen((_) {
+      if (_bloc.state.isGenerating) {
+        _bloc.add(const StopGenerationRequested());
+        stdout.writeln();
+        stdout.writeln('[\u270b interrupted]');
+        return;
+      }
       if (_pendingExit) {
         _clearLine();
         stdout.writeln('Goodbye!');
