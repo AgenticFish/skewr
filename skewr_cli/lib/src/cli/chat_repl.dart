@@ -35,7 +35,7 @@ class ChatRepl {
       if (_bloc.state.isGenerating) {
         _bloc.add(const StopGenerationRequested());
         stdout.writeln();
-        stdout.writeln('[\u270b interrupted]');
+        stdout.writeln('[ \u270b interrupted ]');
         return;
       }
       if (_pendingExit) {
@@ -76,7 +76,7 @@ class ChatRepl {
 
     await for (final state in _bloc.stream) {
       if (state.error != null) {
-        stdout.writeln('\nError: ${state.error}');
+        stdout.writeln('\n[ \u274c Error: ${state.error} ]');
         break;
       }
 
