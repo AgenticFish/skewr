@@ -12,3 +12,10 @@ class SendMessageRequested extends ChatBlocEvent {
   @override
   List<Object?> get props => [content];
 }
+
+class StopGenerationRequested extends ChatBlocEvent {
+  const StopGenerationRequested();
+
+  @override
+  List<Object?> get props => [];
+}
