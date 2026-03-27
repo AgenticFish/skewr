@@ -22,7 +22,7 @@ void main() {
       ]);
 
       when(
-        () => mockClient.sendMessageStream(messages),
+        () => mockClient.sendMessageStream(any(), tools: any(named: 'tools')),
       ).thenAnswer((_) => events);
 
       expect(
@@ -33,12 +33,36 @@ void main() {
         ]),
       );
 
-      verify(() => mockClient.sendMessageStream(messages)).called(1);
+      verify(
+        () => mockClient.sendMessageStream(messages, tools: null),
+      ).called(1);
+    });
+
+    test('chat() passes tools to client', () {
+      final messages = [Message.user('Hello')];
+      final tools = [
+        {
+          'type': 'function',
+          'function': {'name': 'test'},
+        },
+      ];
+
+      when(
+        () => mockClient.sendMessageStream(any(), tools: any(named: 'tools')),
+      ).thenAnswer((_) => Stream.fromIterable([const Done()]));
+
+      expect(service.chat(messages, tools: tools), emits(isA<Done>()));
+
+      verify(
+        () => mockClient.sendMessageStream(messages, tools: tools),
+      ).called(1);
     });
 
     test('chat() forwards ChatError from client', () {
       final messages = [Message.user('Hello')];
-      when(() => mockClient.sendMessageStream(messages)).thenAnswer(
+      when(
+        () => mockClient.sendMessageStream(any(), tools: any(named: 'tools')),
+      ).thenAnswer(
         (_) => Stream.fromIterable([const ChatError('fail'), const Done()]),
       );
 
