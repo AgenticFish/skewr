@@ -2,7 +2,10 @@ import '../models/chat_event.dart';
 import '../models/message.dart';
 
 abstract class ChatService {
-  Stream<ChatEvent> chat(List<Message> messages);
+  Stream<ChatEvent> chat(
+    List<Message> messages, {
+    List<Map<String, dynamic>>? tools,
+  });
 
   void close();
 }

@@ -26,22 +26,30 @@ class PortkeyClient {
     'x-portkey-api-key': config.apiKey,
   };
 
-  String _buildBody(List<Message> messages, {bool stream = false}) {
+  String _buildBody(
+    List<Message> messages, {
+    bool stream = false,
+    List<Map<String, dynamic>>? tools,
+  }) {
     return jsonEncode({
       'model': config.model,
       'messages': messages.map((m) => m.toJson()).toList(),
       'max_tokens': config.maxTokens,
       if (stream) 'stream': true,
+      if (tools != null && tools.isNotEmpty) 'tools': tools,
     });
   }
 
-  Future<Message> sendMessage(List<Message> messages) async {
+  Future<Message> sendMessage(
+    List<Message> messages, {
+    List<Map<String, dynamic>>? tools,
+  }) async {
     final http.Response response;
     try {
       response = await _httpClient.post(
         _url,
         headers: _headers,
-        body: _buildBody(messages),
+        body: _buildBody(messages, tools: tools),
       );
     } on Exception catch (e) {
       throw PortkeyApiException(statusCode: 0, message: e.toString());
@@ -75,10 +83,13 @@ class PortkeyClient {
     }
   }
 
-  Stream<ChatEvent> sendMessageStream(List<Message> messages) async* {
+  Stream<ChatEvent> sendMessageStream(
+    List<Message> messages, {
+    List<Map<String, dynamic>>? tools,
+  }) async* {
     final request = http.Request('POST', _url)
       ..headers.addAll(_headers)
-      ..body = _buildBody(messages, stream: true);
+      ..body = _buildBody(messages, stream: true, tools: tools);
 
     final http.StreamedResponse response;
     try {

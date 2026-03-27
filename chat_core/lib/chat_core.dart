@@ -5,6 +5,7 @@ export 'src/models/message.dart';
 export 'src/models/role.dart';
 export 'src/models/tool_call.dart';
 export 'src/models/usage.dart';
+export 'src/service/agent_service.dart';
 export 'src/service/chat_service.dart';
 export 'src/service/portkey_chat_service.dart';
 export 'src/tool/tool.dart';

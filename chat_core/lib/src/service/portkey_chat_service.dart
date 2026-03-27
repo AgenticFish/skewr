@@ -9,8 +9,10 @@ class PortkeyChatService implements ChatService {
   final PortkeyClient _client;
 
   @override
-  Stream<ChatEvent> chat(List<Message> messages) =>
-      _client.sendMessageStream(messages);
+  Stream<ChatEvent> chat(
+    List<Message> messages, {
+    List<Map<String, dynamic>>? tools,
+  }) => _client.sendMessageStream(messages, tools: tools);
 
   @override
   void close() => _client.close();
