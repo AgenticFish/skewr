@@ -139,6 +139,44 @@ void main() {
       });
     },
   );
+
+  group(
+    'WeatherTool integration',
+    skip: config == null ? 'no local.properties' : null,
+    () {
+      late AgentService agent;
+
+      setUp(() {
+        final registry = ToolRegistry();
+        registry.register(WeatherTool());
+        agent = AgentService(
+          baseChatService: PortkeyChatService(PortkeyClient(config: config!)),
+          toolRegistry: registry,
+        );
+      });
+
+      tearDown(() {
+        agent.close();
+      });
+
+      test('LLM calls weather tool and returns weather info', () async {
+        final events = await agent.chat([
+          Message.user(
+            'Use the get_weather tool to check the weather in San Jose. '
+            'I mean San Jose, California, US. '
+            'Reply with the city, state, temperature and condition.',
+          ),
+        ]).toList();
+
+        final textDeltas = events.whereType<TextDelta>().toList();
+        final fullText = textDeltas.map((e) => e.text).join();
+        print('WeatherTool: $fullText');
+
+        expect(events.whereType<ToolCallRequest>(), isNotEmpty);
+        expect(fullText.toLowerCase(), contains('san jose'));
+      });
+    },
+  );
 }
 
 class _AddTool implements Tool {
