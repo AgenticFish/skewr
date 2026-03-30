@@ -21,14 +21,22 @@ Future<void> main(List<String> args) async {
   }
 
   final client = PortkeyClient(config: config);
-  final service = PortkeyChatService(client);
-  final bloc = ChatBloc(service);
+  final chatService = PortkeyChatService(client);
+
+  final registry = ToolRegistry();
+  registry.register(WeatherTool());
+
+  final agentService = AgentService(
+    baseChatService: chatService,
+    toolRegistry: registry,
+  );
+  final bloc = ChatBloc(agentService);
 
   final repl = ChatRepl(bloc);
   await repl.run();
 
   bloc.close();
-  service.close();
+  agentService.close();
 }
 
 void _printUsage() {

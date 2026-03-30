@@ -33,17 +33,24 @@ class WeatherTool implements Tool {
   Future<String> execute(Map<String, dynamic> arguments) async {
     final city = arguments['city'] as String;
 
-    final geocodingResult = await _fetch(
-      'https://geocoding-api.open-meteo.com/v1/search?name=$city&count=5',
+    final geocodingUrl = Uri.https(
+      'geocoding-api.open-meteo.com',
+      '/v1/search',
+      {'name': city, 'count': '5'},
     );
+    final geocodingResult = await _fetch(geocodingUrl);
     if (geocodingResult == null) return 'Failed to geocode "$city".';
 
-    final weatherResult = await _fetch(
-      'https://api.open-meteo.com/v1/forecast'
-      '?latitude=${_firstLat(geocodingResult)}'
-      '&longitude=${_firstLon(geocodingResult)}'
-      '&current=temperature_2m,weather_code',
-    );
+    final lat = _firstLat(geocodingResult);
+    final lon = _firstLon(geocodingResult);
+    if (lat == null || lon == null) return 'City "$city" not found.';
+
+    final weatherUrl = Uri.https('api.open-meteo.com', '/v1/forecast', {
+      'latitude': lat,
+      'longitude': lon,
+      'current': 'temperature_2m,weather_code',
+    });
+    final weatherResult = await _fetch(weatherUrl);
 
     return 'Geocoding results:\n$geocodingResult\n\n'
         'Weather (for first match):\n${weatherResult ?? "Failed to fetch weather."}';
@@ -59,9 +66,9 @@ class WeatherTool implements Tool {
     return match?.group(1);
   }
 
-  Future<String?> _fetch(String url) async {
+  Future<String?> _fetch(Uri url) async {
     try {
-      final response = await _httpClient.get(Uri.parse(url));
+      final response = await _httpClient.get(url);
       if (response.statusCode != 200) return null;
       return response.body;
     } on Exception {

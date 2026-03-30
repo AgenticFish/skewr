@@ -33,12 +33,17 @@ class AgentService implements ChatService {
         currentMessages,
         tools: tools,
       )) {
-        yield event;
         events.add(event);
+        // Don't yield Done yet — we need to check for tool calls first
+        if (event is! Done) yield event;
       }
 
       final toolCallRequests = events.whereType<ToolCallRequest>().toList();
-      if (toolCallRequests.isEmpty) return;
+      if (toolCallRequests.isEmpty) {
+        // No tool calls — this is the final round, yield Done now
+        yield const Done();
+        return;
+      }
 
       if (round == maxToolRounds) {
         yield ChatError('Max tool calling rounds ($maxToolRounds) exceeded');
