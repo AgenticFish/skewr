@@ -56,7 +56,7 @@ void main() {
       final tool = WeatherTool(httpClient: mockClient);
       final result = await tool.execute({'city': 'Nonexistent'});
 
-      expect(result, contains('Geocoding results'));
+      expect(result, contains('not found'));
     });
 
     test('handles HTTP error', () async {
