@@ -16,7 +16,9 @@ class ChatRepl {
 
     _printWelcome();
 
-    final lines = stdin.transform(utf8.decoder).transform(const LineSplitter());
+    final lines = stdin
+        .transform(const Utf8Decoder(allowMalformed: true))
+        .transform(const LineSplitter());
     await for (final input in _prompt(lines)) {
       if (input.trim().isEmpty) continue;
 
