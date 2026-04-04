@@ -25,6 +25,7 @@ Future<void> main(List<String> args) async {
 
   final registry = ToolRegistry();
   registry.register(WeatherTool());
+  registry.register(WriteFileTool());
 
   final agentService = AgentService(
     baseChatService: chatService,
