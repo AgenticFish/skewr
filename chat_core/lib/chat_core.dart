@@ -9,5 +9,6 @@ export 'src/service/agent_service.dart';
 export 'src/service/chat_service.dart';
 export 'src/service/portkey_chat_service.dart';
 export 'src/tool/tool.dart';
+export 'src/tool/tool_labels.dart';
 export 'src/tool/tool_registry.dart';
 export 'src/toolbox/weather_tool.dart';

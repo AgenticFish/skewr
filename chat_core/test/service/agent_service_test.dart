@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 class MockChatService extends Mock implements ChatService {}
 
 class FakeTool implements Tool {
-  FakeTool({required this.name, this.result = 'ok'});
+  FakeTool({required this.name, this.result = 'ok', this.labels});
 
   @override
   final String name;
@@ -16,10 +16,31 @@ class FakeTool implements Tool {
   @override
   Map<String, dynamic> get parameters => {};
 
+  @override
+  final ToolLabels? labels;
+
   final String result;
 
   @override
   Future<String> execute(Map<String, dynamic> arguments) async => result;
+}
+
+class FailingTool implements Tool {
+  @override
+  String get name => 'failing_tool';
+
+  @override
+  String get description => '';
+
+  @override
+  Map<String, dynamic> get parameters => {};
+
+  @override
+  ToolLabels? get labels => null;
+
+  @override
+  Future<String> execute(Map<String, dynamic> arguments) async =>
+      throw Exception('tool error');
 }
 
 void main() {
@@ -84,6 +105,17 @@ void main() {
         toolRegistry: registry,
       );
       final events = await agent.chat([Message.user('Weather?')]).toList();
+
+      final executing = events.whereType<ToolExecuting>().toList();
+      expect(executing, hasLength(1));
+      expect(executing.first.toolName, 'weather');
+      expect(executing.first.label, 'Loading...');
+
+      final results = events.whereType<ToolResult>().toList();
+      expect(results, hasLength(1));
+      expect(results.first.toolName, 'weather');
+      expect(results.first.label, 'Done');
+      expect(results.first.isError, false);
 
       final textDeltas = events.whereType<TextDelta>().toList();
       expect(textDeltas.last.text, contains('sunny'));
@@ -154,11 +186,102 @@ void main() {
         baseChatService: mockService,
         toolRegistry: registry,
       );
-      await agent.chat([Message.user('Use tool')]).toList();
+      final events = await agent.chat([Message.user('Use tool')]).toList();
+
+      final results = events.whereType<ToolResult>().toList();
+      expect(results, hasLength(1));
+      expect(results.first.isError, true);
+      expect(results.first.label, 'Failed');
 
       verify(
         () => mockService.chat(any(), tools: any(named: 'tools')),
       ).called(2);
+    });
+
+    test('yields custom labels from tool', () async {
+      registry.register(
+        FakeTool(
+          name: 'weather',
+          result: 'Sunny',
+          labels: const ToolLabels(
+            executing: 'Checking weather...',
+            result: 'Weather retrieved',
+          ),
+        ),
+      );
+
+      var callCount = 0;
+      when(
+        () => mockService.chat(any(), tools: any(named: 'tools')),
+      ).thenAnswer((_) {
+        callCount++;
+        if (callCount == 1) {
+          return Stream.fromIterable([
+            const ToolCallRequest(
+              ToolCall(
+                id: 'call_1',
+                type: 'function',
+                function: ToolCallFunction(name: 'weather', arguments: '{}'),
+              ),
+            ),
+            const Done(),
+          ]);
+        }
+        return Stream.fromIterable([const TextDelta('Ok'), const Done()]);
+      });
+
+      final agent = AgentService(
+        baseChatService: mockService,
+        toolRegistry: registry,
+      );
+      final events = await agent.chat([Message.user('Weather')]).toList();
+
+      final executing = events.whereType<ToolExecuting>().first;
+      expect(executing.label, 'Checking weather...');
+
+      final result = events.whereType<ToolResult>().first;
+      expect(result.label, 'Weather retrieved');
+    });
+
+    test('yields error ToolResult when tool throws', () async {
+      registry.register(FailingTool());
+
+      var callCount = 0;
+      when(
+        () => mockService.chat(any(), tools: any(named: 'tools')),
+      ).thenAnswer((_) {
+        callCount++;
+        if (callCount == 1) {
+          return Stream.fromIterable([
+            const ToolCallRequest(
+              ToolCall(
+                id: 'call_1',
+                type: 'function',
+                function: ToolCallFunction(
+                  name: 'failing_tool',
+                  arguments: '{}',
+                ),
+              ),
+            ),
+            const Done(),
+          ]);
+        }
+        return Stream.fromIterable([const TextDelta('Ok'), const Done()]);
+      });
+
+      final agent = AgentService(
+        baseChatService: mockService,
+        toolRegistry: registry,
+      );
+      final events = await agent.chat([Message.user('Fail')]).toList();
+
+      final executing = events.whereType<ToolExecuting>().toList();
+      expect(executing, hasLength(1));
+
+      final results = events.whereType<ToolResult>().toList();
+      expect(results, hasLength(1));
+      expect(results.first.isError, true);
+      expect(results.first.label, 'Failed');
     });
 
     test('passes tool definitions to chat service', () async {

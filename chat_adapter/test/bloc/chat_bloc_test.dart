@@ -41,17 +41,20 @@ void main() {
       act: (bloc) => bloc.add(const SendMessageRequested('Hi')),
       expect: () => [
         // User message added, generating starts
-        ChatState(messages: [Message.user('Hi')], isGenerating: true),
+        ChatState(
+          messages: [Message.user('Hi')],
+          generatingStatus: const GeneratingStatus.thinking(),
+        ),
         // First text delta
         ChatState(
           messages: [Message.user('Hi')],
-          isGenerating: true,
+          generatingStatus: const GeneratingStatus.thinking(),
           currentResponse: 'Hello',
         ),
         // Second text delta
         ChatState(
           messages: [Message.user('Hi')],
-          isGenerating: true,
+          generatingStatus: const GeneratingStatus.thinking(),
           currentResponse: 'Hello world',
         ),
         // Done: assistant message added, generating stops
@@ -74,7 +77,10 @@ void main() {
       },
       act: (bloc) => bloc.add(const SendMessageRequested('Hi')),
       expect: () => [
-        ChatState(messages: [Message.user('Hi')], isGenerating: true),
+        ChatState(
+          messages: [Message.user('Hi')],
+          generatingStatus: const GeneratingStatus.thinking(),
+        ),
         ChatState(
           messages: [Message.user('Hi')],
           error: 'Something went wrong',
@@ -103,15 +109,18 @@ void main() {
         bloc.add(const StopGenerationRequested());
       },
       expect: () => [
-        ChatState(messages: [Message.user('Hi')], isGenerating: true),
         ChatState(
           messages: [Message.user('Hi')],
-          isGenerating: true,
+          generatingStatus: const GeneratingStatus.thinking(),
+        ),
+        ChatState(
+          messages: [Message.user('Hi')],
+          generatingStatus: const GeneratingStatus.thinking(),
           currentResponse: 'Hello',
         ),
         ChatState(
           messages: [Message.user('Hi')],
-          isGenerating: true,
+          generatingStatus: const GeneratingStatus.thinking(),
           currentResponse: 'Hello wor',
         ),
         ChatState(

@@ -42,3 +42,28 @@ class ChatError extends ChatEvent {
   @override
   List<Object?> get props => [message];
 }
+
+class ToolExecuting extends ChatEvent {
+  const ToolExecuting({required this.toolName, required this.label});
+
+  final String toolName;
+  final String label;
+
+  @override
+  List<Object?> get props => [toolName, label];
+}
+
+class ToolResult extends ChatEvent {
+  const ToolResult({
+    required this.toolName,
+    required this.label,
+    this.isError = false,
+  });
+
+  final String toolName;
+  final String label;
+  final bool isError;
+
+  @override
+  List<Object?> get props => [toolName, label, isError];
+}

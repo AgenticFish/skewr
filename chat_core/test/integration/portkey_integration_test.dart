@@ -197,6 +197,9 @@ class _AddTool implements Tool {
   };
 
   @override
+  ToolLabels? get labels => null;
+
+  @override
   Future<String> execute(Map<String, dynamic> arguments) async {
     final a = (arguments['a'] as num).toDouble();
     final b = (arguments['b'] as num).toDouble();

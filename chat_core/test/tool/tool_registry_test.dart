@@ -18,6 +18,9 @@ class FakeTool implements Tool {
   final Map<String, dynamic> parameters;
 
   @override
+  ToolLabels? get labels => null;
+
+  @override
   Future<String> execute(Map<String, dynamic> arguments) async => 'result';
 }
 
