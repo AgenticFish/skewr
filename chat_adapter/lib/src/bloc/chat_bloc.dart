@@ -5,6 +5,7 @@ import 'package:chat_core/chat_core.dart';
 
 import 'chat_bloc_event.dart';
 import 'chat_state.dart';
+import 'generating_status.dart';
 
 class ChatBloc extends Bloc<ChatBlocEvent, ChatState> {
   ChatBloc(this._chatService) : super(const ChatState.initial()) {
@@ -23,7 +24,7 @@ class ChatBloc extends Bloc<ChatBlocEvent, ChatState> {
     emit(
       state.copyWith(
         messages: [...state.messages, userMessage],
-        isGenerating: true,
+        generatingStatus: const GeneratingStatus.thinking(),
         error: null,
         currentResponse: '',
       ),
@@ -36,7 +37,12 @@ class ChatBloc extends Bloc<ChatBlocEvent, ChatState> {
           (chatEvent) => _handleChatEvent(chatEvent, emit),
           onDone: () => _completeSubscription(completer),
           onError: (Object e) {
-            emit(state.copyWith(isGenerating: false, error: e.toString()));
+            emit(
+              state.copyWith(
+                generatingStatus: const GeneratingStatus.idle(),
+                error: e.toString(),
+              ),
+            );
             _completeSubscription(completer);
           },
         );
@@ -48,16 +54,22 @@ class ChatBloc extends Bloc<ChatBlocEvent, ChatState> {
       TextDelta(:final text) => state.copyWith(
         currentResponse: state.currentResponse + text,
       ),
+      ToolExecuting(:final label) => state.copyWith(
+        generatingStatus: GeneratingStatus.toolExecuting(label),
+      ),
+      ToolResult() => state.copyWith(
+        generatingStatus: const GeneratingStatus.thinking(),
+      ),
       Done() => state.copyWith(
         messages: [
           ...state.messages,
           Message.assistant(content: state.currentResponse),
         ],
-        isGenerating: false,
+        generatingStatus: const GeneratingStatus.idle(),
         currentResponse: '',
       ),
       ChatError(:final message) => state.copyWith(
-        isGenerating: false,
+        generatingStatus: const GeneratingStatus.idle(),
         error: message,
       ),
       ToolCallRequest() => state,
@@ -86,7 +98,7 @@ class ChatBloc extends Bloc<ChatBlocEvent, ChatState> {
             ...state.messages,
             Message.assistant(content: state.currentResponse),
           ],
-          isGenerating: false,
+          generatingStatus: const GeneratingStatus.idle(),
           currentResponse: '',
         ),
       );

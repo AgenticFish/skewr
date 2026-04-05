@@ -45,11 +45,41 @@ void main() {
       expect(a, equals(b));
     });
 
+    test('ToolExecuting', () {
+      const event = ToolExecuting(
+        toolName: 'get_weather',
+        label: 'Checking weather...',
+      );
+      expect(event.toolName, 'get_weather');
+      expect(event.label, 'Checking weather...');
+    });
+
+    test('ToolResult', () {
+      const event = ToolResult(
+        toolName: 'get_weather',
+        label: 'Weather retrieved',
+      );
+      expect(event.toolName, 'get_weather');
+      expect(event.label, 'Weather retrieved');
+      expect(event.isError, false);
+    });
+
+    test('ToolResult with error', () {
+      const event = ToolResult(
+        toolName: 'get_weather',
+        label: 'Failed',
+        isError: true,
+      );
+      expect(event.isError, true);
+    });
+
     test('exhaustive pattern matching', () {
       const ChatEvent event = TextDelta('hi');
       final result = switch (event) {
         TextDelta(:final text) => 'text: $text',
         ToolCallRequest(:final toolCall) => 'tool: ${toolCall.id}',
+        ToolExecuting(:final toolName) => 'executing: $toolName',
+        ToolResult(:final toolName) => 'result: $toolName',
         Done() => 'done',
         ChatError(:final message) => 'error: $message',
       };

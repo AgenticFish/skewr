@@ -179,7 +179,7 @@ void main() {
   );
 }
 
-class _AddTool implements Tool {
+class _AddTool extends Tool {
   @override
   String get name => 'add';
 

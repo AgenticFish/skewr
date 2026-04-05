@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 
 import '../tool/tool.dart';
 
-class WeatherTool implements Tool {
+class WeatherTool extends Tool {
   WeatherTool({http.Client? httpClient})
     : _httpClient = httpClient ?? http.Client();
 

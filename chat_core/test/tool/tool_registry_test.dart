@@ -1,7 +1,7 @@
 import 'package:chat_core/chat_core.dart';
 import 'package:test/test.dart';
 
-class FakeTool implements Tool {
+class FakeTool extends Tool {
   FakeTool({
     required this.name,
     this.description = '',

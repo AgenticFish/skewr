@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:chat_core/chat_core.dart';
 
-class WriteFileTool implements Tool {
+class WriteFileTool extends Tool {
   @override
   String get name => 'write_file';
 

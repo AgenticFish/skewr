@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../models/chat_event.dart';
 import '../models/message.dart';
+import '../tool/tool_labels.dart';
 import '../tool/tool_registry.dart';
 import 'chat_service.dart';
 
@@ -59,6 +60,11 @@ class AgentService implements ChatService {
         final toolName = request.toolCall.function.name;
         final tool = _toolRegistry.getTool(toolName);
         if (tool == null) {
+          yield ToolResult(
+            toolName: toolName,
+            label: ToolLabels.defaultError,
+            isError: true,
+          );
           currentMessages.add(
             Message.tool(
               toolCallId: request.toolCall.id,
@@ -68,15 +74,30 @@ class AgentService implements ChatService {
           continue;
         }
 
+        final labels = tool.labels;
+        yield ToolExecuting(
+          toolName: toolName,
+          label: labels?.executingLabel ?? ToolLabels.defaultExecuting,
+        );
+
         try {
           final arguments =
               jsonDecode(request.toolCall.function.arguments)
                   as Map<String, dynamic>;
           final result = await tool.execute(arguments);
+          yield ToolResult(
+            toolName: toolName,
+            label: labels?.resultLabel ?? ToolLabels.defaultResult,
+          );
           currentMessages.add(
             Message.tool(toolCallId: request.toolCall.id, content: result),
           );
         } on Exception catch (e) {
+          yield ToolResult(
+            toolName: toolName,
+            label: labels?.errorLabel ?? ToolLabels.defaultError,
+            isError: true,
+          );
           currentMessages.add(
             Message.tool(
               toolCallId: request.toolCall.id,
