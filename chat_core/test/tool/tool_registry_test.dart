@@ -1,7 +1,7 @@
 import 'package:chat_core/chat_core.dart';
 import 'package:test/test.dart';
 
-class FakeTool implements Tool {
+class FakeTool extends Tool {
   FakeTool({
     required this.name,
     this.description = '',
@@ -16,9 +16,6 @@ class FakeTool implements Tool {
 
   @override
   final Map<String, dynamic> parameters;
-
-  @override
-  ToolLabels? get labels => null;
 
   @override
   Future<String> execute(Map<String, dynamic> arguments) async => 'result';

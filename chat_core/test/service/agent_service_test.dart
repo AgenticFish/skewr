@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 
 class MockChatService extends Mock implements ChatService {}
 
-class FakeTool implements Tool {
+class FakeTool extends Tool {
   FakeTool({required this.name, this.result = 'ok', this.labels});
 
   @override
@@ -25,7 +25,7 @@ class FakeTool implements Tool {
   Future<String> execute(Map<String, dynamic> arguments) async => result;
 }
 
-class FailingTool implements Tool {
+class FailingTool extends Tool {
   @override
   String get name => 'failing_tool';
 
@@ -34,9 +34,6 @@ class FailingTool implements Tool {
 
   @override
   Map<String, dynamic> get parameters => {};
-
-  @override
-  ToolLabels? get labels => null;
 
   @override
   Future<String> execute(Map<String, dynamic> arguments) async =>

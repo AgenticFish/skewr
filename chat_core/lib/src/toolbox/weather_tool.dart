@@ -1,16 +1,12 @@
 import 'package:http/http.dart' as http;
 
 import '../tool/tool.dart';
-import '../tool/tool_labels.dart';
 
-class WeatherTool implements Tool {
+class WeatherTool extends Tool {
   WeatherTool({http.Client? httpClient})
     : _httpClient = httpClient ?? http.Client();
 
   final http.Client _httpClient;
-
-  @override
-  ToolLabels? get labels => null;
 
   @override
   String get name => 'get_weather';

@@ -179,7 +179,7 @@ void main() {
   );
 }
 
-class _AddTool implements Tool {
+class _AddTool extends Tool {
   @override
   String get name => 'add';
 
@@ -195,9 +195,6 @@ class _AddTool implements Tool {
     },
     'required': ['a', 'b'],
   };
-
-  @override
-  ToolLabels? get labels => null;
 
   @override
   Future<String> execute(Map<String, dynamic> arguments) async {
