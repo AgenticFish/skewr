@@ -4,6 +4,13 @@ import 'package:chat_core/chat_core.dart';
 
 class WriteFileTool extends Tool {
   @override
+  ToolLabels get labels => const ToolLabels(
+    executing: 'Writing file...',
+    result: 'File written',
+    error: 'File write failed',
+  );
+
+  @override
   String get name => 'write_file';
 
   @override

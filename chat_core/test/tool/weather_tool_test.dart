@@ -76,5 +76,12 @@ void main() {
       expect(tool.description, isNotEmpty);
       expect(tool.parameters['required'], contains('city'));
     });
+
+    test('has labels', () {
+      final tool = WeatherTool();
+      expect(tool.labels.executingLabel, 'Checking weather...');
+      expect(tool.labels.resultLabel, 'Weather retrieved');
+      expect(tool.labels.errorLabel, 'Weather lookup failed');
+    });
   });
 }

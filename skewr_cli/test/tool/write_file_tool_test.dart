@@ -24,6 +24,12 @@ void main() {
       expect(tool.parameters['required'], contains('content'));
     });
 
+    test('has labels', () {
+      expect(tool.labels.executingLabel, 'Writing file...');
+      expect(tool.labels.resultLabel, 'File written');
+      expect(tool.labels.errorLabel, 'File write failed');
+    });
+
     test('writes content to a file', () async {
       final path = '${tempDir.path}/test.md';
       final result = await tool.execute({

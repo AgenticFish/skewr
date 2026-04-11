@@ -1,12 +1,20 @@
 import 'package:http/http.dart' as http;
 
 import '../tool/tool.dart';
+import '../tool/tool_labels.dart';
 
 class WeatherTool extends Tool {
   WeatherTool({http.Client? httpClient})
     : _httpClient = httpClient ?? http.Client();
 
   final http.Client _httpClient;
+
+  @override
+  ToolLabels get labels => const ToolLabels(
+    executing: 'Checking weather...',
+    result: 'Weather retrieved',
+    error: 'Weather lookup failed',
+  );
 
   @override
   String get name => 'get_weather';
