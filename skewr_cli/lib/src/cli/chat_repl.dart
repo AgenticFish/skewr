@@ -7,9 +7,25 @@ import 'package:chat_adapter/chat_adapter.dart';
 class ChatRepl {
   ChatRepl(this._bloc);
 
+  static const _spinnerFrames = [
+    '⠋',
+    '⠙',
+    '⠹',
+    '⠸',
+    '⠼',
+    '⠴',
+    '⠦',
+    '⠧',
+    '⠇',
+    '⠏',
+  ];
+
   final ChatBloc _bloc;
   bool _pendingExit = false;
   Timer? _exitTimer;
+  Timer? _spinnerTimer;
+  int _spinnerIndex = 0;
+  String _spinnerLabel = '';
 
   Future<void> run() async {
     final sigintSub = _listenSigint();
@@ -75,26 +91,62 @@ class ChatRepl {
   Future<void> _renderResponse() async {
     var previousLength = 0;
     var generationStarted = false;
+    var hasTextOutput = false;
 
     await for (final state in _bloc.stream) {
       if (state.error != null) {
+        _stopSpinner();
         stdout.writeln('\n[ \u274c Error: ${state.error} ]');
         break;
       }
 
       if (state.isGenerating) {
         generationStarted = true;
+        final label = state.generatingStatus.label;
         if (state.currentResponse.length > previousLength) {
+          if (_spinnerTimer != null) {
+            _stopSpinner();
+          }
           final newText = state.currentResponse.substring(previousLength);
           stdout.write(newText);
           previousLength = state.currentResponse.length;
+          hasTextOutput = true;
+        } else if (label != null) {
+          if (hasTextOutput && _spinnerTimer == null) {
+            stdout.writeln();
+          }
+          _updateSpinner(label);
         }
       } else if (generationStarted) {
+        _stopSpinner();
+        final lastContent = state.messages.lastOrNull?.content;
+        if (lastContent != null && lastContent.length > previousLength) {
+          stdout.write(lastContent.substring(previousLength));
+        }
         stdout.writeln();
         stdout.writeln();
         break;
       }
     }
+  }
+
+  void _updateSpinner(String label) {
+    if (_spinnerTimer != null && _spinnerLabel == label) return;
+    _spinnerLabel = label;
+    _spinnerTimer?.cancel();
+    _spinnerIndex = 0;
+    _spinnerTimer = Timer.periodic(const Duration(milliseconds: 80), (_) {
+      _clearLine();
+      stdout.write('${_spinnerFrames[_spinnerIndex]} $_spinnerLabel');
+      _spinnerIndex = (_spinnerIndex + 1) % _spinnerFrames.length;
+    });
+  }
+
+  void _stopSpinner() {
+    if (_spinnerTimer == null) return;
+    _spinnerTimer!.cancel();
+    _spinnerTimer = null;
+    _clearLine();
   }
 
   void _clearLine() {
