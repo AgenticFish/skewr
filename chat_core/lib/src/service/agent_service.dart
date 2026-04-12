@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../models/chat_event.dart';
 import '../models/message.dart';
+import '../prompt/system_prompt.dart';
 import '../tool/tool_labels.dart';
 import '../tool/tool_registry.dart';
 import 'chat_service.dart';
@@ -10,12 +11,14 @@ class AgentService implements ChatService {
   AgentService({
     required ChatService baseChatService,
     required ToolRegistry toolRegistry,
+    this.systemPrompt = agentSystemPrompt,
     this.maxToolRounds = 5,
   }) : _baseChatService = baseChatService,
        _toolRegistry = toolRegistry;
 
   final ChatService _baseChatService;
   final ToolRegistry _toolRegistry;
+  final String systemPrompt;
   final int maxToolRounds;
 
   @override
@@ -23,7 +26,7 @@ class AgentService implements ChatService {
     List<Message> messages, {
     List<Map<String, dynamic>>? tools,
   }) async* {
-    final currentMessages = List<Message>.from(messages);
+    final currentMessages = [Message.system(systemPrompt), ...messages];
     final toolDefs = _toolRegistry.toToolDefinitions();
     final tools = toolDefs.isEmpty ? null : toolDefs;
 
