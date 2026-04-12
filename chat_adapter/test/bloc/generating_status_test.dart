@@ -21,6 +21,13 @@ void main() {
       expect(status.label, 'Checking weather...');
     });
 
+    test('toolResult', () {
+      const status = GeneratingStatus.toolResult('Weather retrieved');
+      expect(status.isGenerating, true);
+      expect(status.isToolResult, true);
+      expect(status.label, 'Weather retrieved');
+    });
+
     test('equality', () {
       const a = GeneratingStatus.thinking();
       const b = GeneratingStatus.thinking();

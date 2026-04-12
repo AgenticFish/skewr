@@ -115,7 +115,14 @@ class ChatRepl {
           if (hasTextOutput && _spinnerTimer == null) {
             stdout.writeln();
           }
-          _updateSpinner(label);
+          if (state.generatingStatus.isToolResult) {
+            _stopSpinner();
+            _clearLine();
+            stdout.writeln('\u2713 $label');
+            _updateSpinner('Thinking...');
+          } else {
+            _updateSpinner(label);
+          }
         }
       } else if (generationStarted) {
         _stopSpinner();

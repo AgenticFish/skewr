@@ -57,8 +57,8 @@ class ChatBloc extends Bloc<ChatBlocEvent, ChatState> {
       ToolExecuting(:final label) => state.copyWith(
         generatingStatus: GeneratingStatus.toolExecuting(label),
       ),
-      ToolResult() => state.copyWith(
-        generatingStatus: const GeneratingStatus.thinking(),
+      ToolResult(:final label) => state.copyWith(
+        generatingStatus: GeneratingStatus.toolResult(label),
       ),
       Done() => state.copyWith(
         messages: [
