@@ -21,9 +21,9 @@ class WeatherTool extends Tool {
 
   @override
   String get description =>
-      'Search for a city and get its current weather. '
-      'Returns geocoding results (may include multiple matches) '
-      'and weather data as raw JSON.';
+      'Get current weather conditions for a specific city. '
+      'Use this ONLY when the user asks about current or real-time weather. '
+      'Do NOT use for general questions about climate, seasons, or weather concepts.';
 
   @override
   Map<String, dynamic> get parameters => {

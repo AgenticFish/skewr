@@ -15,9 +15,9 @@ class WriteFileTool extends Tool {
 
   @override
   String get description =>
-      'Write content to a file. Creates parent directories if needed. '
-      'Use this to save conversation summaries, notes, or any text content. '
-      'You decide the file name and content. Always use .md format.';
+      'Write content to a file at a given path. Creates parent directories if needed. '
+      'Use this ONLY when the user explicitly asks to save, write, or export content to a file. '
+      'Always use .md format. You decide the file name and content based on the request.';
 
   @override
   Map<String, dynamic> get parameters => {

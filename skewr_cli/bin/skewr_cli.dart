@@ -30,6 +30,7 @@ Future<void> main(List<String> args) async {
   final agentService = AgentService(
     baseChatService: chatService,
     toolRegistry: registry,
+    systemPrompt: cliSystemPrompt,
   );
   final bloc = ChatBloc(agentService);
 
