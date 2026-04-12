@@ -118,7 +118,7 @@ class ChatRepl {
           if (state.generatingStatus.isToolResult) {
             _stopSpinner();
             _clearLine();
-            stdout.writeln('\u2713 $label');
+            stdout.write('\u2713 $label');
             _updateSpinner('Thinking...');
           } else {
             _updateSpinner(label);
